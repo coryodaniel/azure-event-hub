@@ -1,0 +1,177 @@
+schema: draft-07
+name: "azure-event-hub"
+description: "Bicep Demo; Azure Event Hub"
+source_url: github.com/massdriver-cloud/application-examples/bicep/azure-event-hub
+access: private
+type: infrastructure
+
+steps:
+  - path: src
+    provisioner: bicep
+    config:
+      region: .connections.azure_storage_account_data_lake.specs.azure.region
+      # resource_group: .params.md_metadata.name_prefix
+
+params:
+  examples:
+    - __name: Development
+      hub:
+        sku: Standard
+        partition_count: 1
+        throughput_units: 1
+    - __name: Production
+      hub:
+        sku: Premium
+        partition_count: 20
+        throughput_units: 10
+        message_retention: 7
+  required:
+    - hub
+    - capture
+
+  properties:
+    hub:
+      type: object
+      title: Event Hub
+      required:
+        - sku
+        - partition_count
+        - throughput_units
+        - zone_redundant
+        - message_retention
+      properties:
+        sku:
+          type: string
+          title: Pricing tier
+          description: Learn more about the different features and capabilities of each pricing tier [here](https://learn.microsoft.com/en-us/azure/event-hubs/compare-tiers). **Cannot be changed after deployment**.
+          default: Standard
+          $md.immutable: true
+          enum:
+            - Standard
+            - Premium
+        partition_count:
+          title: Partition count
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 32
+        throughput_units:
+          title: Throughput Units
+          description: The number of throughput units allocated for the Event Hubs. Minimum of 1, maximum of 40. [Learn more here](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#throughput-units).
+          type: integer
+          minimum: 1
+          maximum: 40
+        zone_redundant:
+          type: boolean
+          title: Zone redundant
+          description: Enable zone redundancy for the Event Hubs. **Cannot be changed after deployment**.
+          default: false
+          $md.immutable: true
+        message_retention:
+          type: integer
+          title: Message retention
+          description: The number of days to retain the events for this Event Hubs, value should be 1 to 7 days.
+          default: 1
+          minimum: 1
+          maximum: 7
+      dependencies:
+        sku:
+          oneOf:
+            - properties:
+                sku:
+                  const: Standard
+                partition_count:
+                  description: The number of partitions created for the Event Hubs. Minimum of 1, maximum of 32. [Learn more here](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#partitions). **Cannot be changed after deployment**.
+                  $md.immutable: true
+                enable_auto_inflate:
+                  type: boolean
+                  title: Enable auto-inflate
+                  description: Automatically scale up by increasing the number of throughput units to meet usage needs.
+                  default: false
+              required:
+                - enable_auto_inflate
+              dependencies:
+                enable_auto_inflate:
+                  oneOf:
+                    - properties:
+                        enable_auto_inflate:
+                          const: true
+                        throughput_units:
+                          title: Maximum throughput units
+                          description: The maximum number of throughput units that can be allocated for the Event Hubs. Minimum of 1, maximum of 40. [Learn more here](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#throughput-units).
+                    - properties:
+                        enable_auto_inflate:
+                          const: false
+            - properties:
+                sku:
+                  const: Premium
+                partition_count:
+                  description: The number of partitions created for the Event Hubs. Minimum of 1, maximum of 32. [Learn more here](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#partitions).
+    capture:
+      title: Event capture settings
+      type: object
+      required:
+        - arvo_encoding
+        - interval
+        - size_limit
+      properties:
+        arvo_encoding:
+          title: Avro encoding
+          type: string
+          description: Specifies the encoding used for the capture.
+          default: Avro
+          enum:
+            - Avro
+            - AvroDeflate
+        interval:
+          title: Interval
+          description: The time interval, in seconds, at which the capture to Azure Data Lake will happen. Minimum of 60, maximum of 900.
+          type: integer
+          default: 300
+          minimum: 60
+          maximum: 900
+        size_limit:
+          title: Size limit
+          description: The amount of data built up in your Event Hub before a capture operation occurs. Minimum of 10 MiB, maximum of 500 MiB.
+          type: integer
+          default: 300
+          minimum: 10
+          maximum: 500
+
+connections:
+  required:
+  - azure_service_principal
+  - azure_storage_account_data_lake
+  properties:
+    azure_service_principal:
+      $ref: massdriver/azure-service-principal
+    azure_storage_account_data_lake:
+      $ref: massdriver/azure-storage-account-data-lake
+
+artifacts:
+  required:
+    - hub
+  properties:
+    hub:
+      $ref: massdriver/azure-event-hubs
+
+ui:
+  ui:order:
+    - hub
+    - capture
+    - "*"
+  hub:
+    ui:order:
+      - sku
+      - partition_count
+      - enable_auto_inflate
+      - throughput_units
+      - message_retention
+      - zone_redundant
+      - "*"
+  capture:
+    ui:order:
+      - arvo_encoding
+      - interval
+      - size_limit
+      - "*"
