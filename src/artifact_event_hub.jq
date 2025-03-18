@@ -1,0 +1,1 @@
+.properties.outputs.hub.value

@@ -1,6 +1,6 @@
 schema: draft-07
 name: "azure-event-hub"
-description: "Bicep Demo; Azure Event Hub"
+description: "Bicep Demo; Azure Event Hub with artifact"
 source_url: github.com/massdriver-cloud/application-examples/bicep/azure-event-hub
 access: private
 type: infrastructure
@@ -150,9 +150,9 @@ connections:
 
 artifacts:
   required:
-    - hub
+    - event_hub
   properties:
-    hub:
+    event_hub:
       $ref: massdriver/azure-event-hubs
 
 ui:
