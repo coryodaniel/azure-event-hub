@@ -14,9 +14,6 @@ param hub object
 @description('Massdriver metadata')
 param md_metadata object
 
-// TODO: remove preset name from params object, bicep can't handle params that aren't defined (and its a noop in the platform)
-param __name string
-
 resource eventHubNamespace 'Microsoft.EventHub/namespaces@2023-01-01-preview' = {
   name: md_metadata.name_prefix
   location: azure_storage_account_data_lake.specs.azure.region
